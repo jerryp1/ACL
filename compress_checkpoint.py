@@ -1,26 +1,4 @@
 #!/usr/bin/env python3
-"""Unified checkpoint compression tool.
-
-Compatible with DeepSpeed and Megatron-LM checkpoint layouts.
-Supports bf16, fp16, and fp32 data types.
-Handles: model.safetensors, mp_rank_*_model_states.pt, bf16_zero_pp_rank_*_optim_states.pt
-
-Usage:
-  # Compress a single file (no delta, I-Align only)
-  python compress_checkpoint.py --input model.safetensors --output compressed.bin
-
-  # Delta compression between base and finetuned checkpoints
-  python compress_checkpoint.py \\
-      --base /path/to/base_model/ \\
-      --finetuned /path/to/checkpoint-10/ \\
-      --output_dir /path/to/output/
-
-  # Auto-discover and compress all files in a directory
-  python compress_checkpoint.py --input_dir /path/to/checkpoint-10/ --output_dir /path/to/output/
-
-  # Compress specific file types only
-  python compress_checkpoint.py --input_dir /path/to/ckpt/ --filter "*.safetensors" --output_dir out/
-"""
 
 import argparse
 import glob

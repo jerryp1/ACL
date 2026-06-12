@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""Decompress checkpoint files produced by compress_checkpoint.py.
-
-Reads .alc files and reconstructs original tensors.
-Uses C++ fast paths for pcdelta/rotdelta decoding when available.
-
-Usage:
-  python decompress_checkpoint.py --input_dir ./compressed --output_dir ./restored
-  python decompress_checkpoint.py --input_dir ./compressed --base base.safetensors --output_dir ./restored
-"""
-
 import argparse
 import json
 import os

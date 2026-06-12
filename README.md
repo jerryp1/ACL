@@ -26,29 +26,11 @@ c++ -O3 -march=native -shared -std=c++20 -fPIC \
 ## Usage
 
 ```bash
-# Compress safetensors (auto-selects best path: delta or I-Align)
-./compress.sh --input /path/to/checkpoint-10/model.safetensors \
-              --base /path/to/checkpoint-0/model.safetensors \
-              --output_dir ./compressed
 
-# Compress Megatron .pt
+# Compress .pt
 ./compress.sh --input /path/to/checkpoint-10/global_step10/mp_rank_00_model_states.pt \
               --base /path/to/checkpoint-0/global_step0/mp_rank_00_model_states.pt \
               --output_dir ./compressed
-
-# Compress entire directory
-./compress.sh --input /path/to/checkpoint-20/global_step20/ \
-              --base_dir /path/to/checkpoint-10/global_step10/ \
-              --output_dir ./compressed
-
-# Compress without base (auto falls back to I-Align)
-./compress.sh --input /path/to/checkpoint-10/model.safetensors \
-              --output_dir ./compressed
-
-# Decompress
-./decompress.sh --input ./compressed \
-                --base /path/to/checkpoint-0/model.safetensors \
-                --output_dir ./restored
 ```
 
 

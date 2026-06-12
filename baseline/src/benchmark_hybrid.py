@@ -354,9 +354,9 @@ def analyze_tensor(ft_f32, base_f32, idx, cat, short_name):
 
     print(f"\n{'='*120}")
     print(f"  [{idx}] {short_name}")
-    print(f"      类型: {cat}, 元素数: {numel:,}, 原始大小: {orig_bytes/1e6:.1f}MB")
-    print(f"      符号翻转: {diff_sign_count:,} ({diff_sign_pct:.1f}%), 同号: {same_sign_count:,} ({100-diff_sign_pct:.1f}%)")
-    print(f"      sign_flag 熵: {sign_flag_ent:.3f} bit")
+    print(f"      type: {cat}, elements: {numel:,}, original: {orig_bytes/1e6:.1f}MB")
+    print(f"      sign flips: {diff_sign_count:,} ({diff_sign_pct:.1f}%), same sign: {same_sign_count:,} ({100-diff_sign_pct:.1f}%)")
+    print(f"      sign_flag entropy: {sign_flag_ent:.3f} bit")
     print(f"{'='*120}", flush=True)
 
     transform_names = ["Delta", "Delta-rotl1", "Hybrid"]
@@ -450,7 +450,7 @@ def analyze_tensor(ft_f32, base_f32, idx, cat, short_name):
     all_compress["FMDelta-C++"] = {"ratio": fm_ratio, "sz": fm_sz}
 
     # --- Summary ---
-    print(f"\n  ── 总结 ──")
+    print(f"\n  -- Summary --")
     all_ratios = {}
     for tname in transform_names:
         short = tname.replace("Delta-rotl1", "Drotl1")
@@ -482,9 +482,9 @@ def main():
     args = parser.parse_args()
 
     print("=" * 120)
-    print("  混合 Delta 方案 benchmark")
-    print("  3 种处理: Delta / Delta-rotl1 / Hybrid (异号rotl1 + 同号pcmap)")
-    print("  2 种编码: ByteCol-RC / FMD-style")
+    print("  Hybrid Delta Benchmark")
+    print("  3 transforms: Delta / Delta-rotl1 / Hybrid (diff-sign rotl1 + same-sign pcmap)")
+    print("  2 encodings: ByteCol-RC / FMD-style")
     print(f"  BASE: {args.base}")
     print(f"  FT:   {args.ft}")
     print("=" * 120)
@@ -531,7 +531,7 @@ def main():
     else:
         selected = list(enumerate(compressible))
 
-    print(f"\n匹配的 tensor 对: {len(compressible)}, 测试: {len(selected)}", flush=True)
+    print(f"\nMatched tensor pairs: {len(compressible)}, testing: {len(selected)}", flush=True)
 
     del base_ckpt, ft_ckpt, base_tensors, ft_tensors, base_map
     gc.collect()
@@ -553,14 +553,14 @@ def main():
     # Summary table
     # ================================================================
     print(f"\n\n{'='*120}")
-    print("  汇总表: 实际压缩率")
+    print("  Summary: Actual compression ratios")
     print(f"{'='*120}")
 
     methods = ["Delta+BC", "Drotl1+BC", "Hybrid+BC",
                "Delta+FMD", "Drotl1+FMD", "Hybrid+FMD", "FMDelta-C++"]
 
-    print(f"  {'#':>3s} {'类型':>10s} {'元素数':>14s} {'异号%':>6s} | " +
-          " ".join(f"{m:>11s}" for m in methods) + f" | {'最优':>14s}")
+    print(f"  {'#':>3s} {'Type':>10s} {'Elements':>14s} {'DiffSign%':>9s} | " +
+          " ".join(f"{m:>11s}" for m in methods) + f" | {'Best':>14s}")
     print(f"  {'-'*3}-{'-'*10}-{'-'*14}-{'-'*6}-+-" +
           "-".join(f"{'-'*11}" for _ in methods) + f"-+-{'-'*14}")
 
@@ -587,7 +587,7 @@ def main():
         print(f"  {tr['idx']:>3d} {tr['cat']:>10s} {tr['numel']:>14,d} {tr['diff_sign_pct']:>5.1f}% | {ratio_strs} | {best:>14s}")
 
     if total_orig > 0:
-        print(f"\n  总计: 原始 {total_orig/1e9:.2f}GB")
+        print(f"\n  Total: original {total_orig/1e9:.2f}GB")
         sorted_methods = sorted(methods, key=lambda m: totals[m])
         for m in sorted_methods:
             ratio = totals[m] / total_orig

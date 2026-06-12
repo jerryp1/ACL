@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""
-Hybrid Benchmark
-======================
-Prerequisites (set PYTHONPATH before running):
-  export PYTHONPATH=/path/to/CodeCheckpoint-clean/src:$PYTHONPATH
-  export PYTHONPATH=/path/to/CodeCheckpoint-clean/CodeTensors/python/install:$PYTHONPATH
-
-Usage:
-    python benchmark_hybrid.py --base BASE.pt --ft FT.pt
-    python benchmark_hybrid.py --base BASE.pt --ft FT.pt --tensor-idx 0 1 4
-"""
+"""Hybrid compression benchmark comparing ALC paths vs baseline methods."""
 from __future__ import annotations
 
 import argparse
@@ -21,11 +11,8 @@ import types as _types
 
 import numpy as np
 
-# ---------------------------------------------------------------------------
-# Path setup – resolve project root relative to this script
-# ---------------------------------------------------------------------------
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_DIR = os.path.dirname(os.path.dirname(_SCRIPT_DIR))  # baseline/../
+_PROJECT_DIR = os.path.dirname(os.path.dirname(_SCRIPT_DIR))
 
 _SRC_DIR = os.path.join(_PROJECT_DIR, "src")
 if _SRC_DIR not in sys.path:
@@ -45,46 +32,9 @@ for _so_dir in _CANDIDATE_SO_DIRS:
 _INSTALLED_STUBS: set = set()
 
 
+_INSTALLED_STUBS: set = set()
+
 def _install_module_stubs(prefix: str) -> None:
-    """Install an import hook that silently stubs out *prefix* and sub-modules."""
-    if prefix in _INSTALLED_STUBS:
-        return
-
-    class _StubModule(_types.ModuleType):
-        def __init__(self, name):
-            super().__init__(name)
-            self.__path__ = []
-            self.__file__ = f"<stub:{name}>"
-
-        def __getattr__(self, name):
-            full = f"{self.__name__}.{name}"
-            if full in sys.modules:
-                return sys.modules[full]
-            return type(name, (), {
-                "__module__": self.__name__,
-                "__init__": lambda self, *a, **kw: self.__dict__.update(kw),
-                "__reduce__": lambda self: (dict, ()),
-                "__reduce_ex__": lambda self, p: (dict, ()),
-            })
-
-        def __call__(self, *a, **kw):
-            return {}
-
-    class _StubFinder:
-        def find_module(self, fullname, path=None):
-            if fullname == prefix or fullname.startswith(prefix + "."):
-                return self
-            return None
-
-        def load_module(self, fullname):
-            if fullname in sys.modules:
-                return sys.modules[fullname]
-            mod = _StubModule(fullname)
-            sys.modules[fullname] = mod
-            return mod
-
-    sys.meta_path.insert(0, _StubFinder())
-    _INSTALLED_STUBS.add(prefix)
 
 
 def torch_load_checkpoint(path: str, max_retries: int = 5):

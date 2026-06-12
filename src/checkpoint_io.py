@@ -71,7 +71,7 @@ def _tensor_to_float32(tensor):
         safe_tensor.requires_grad_(False)
     dtype_str = _torch_dtype_to_str(safe_tensor.dtype)
     if dtype_str == "BF16":
-            f32_tensor = safe_tensor.float()
+        f32_tensor = safe_tensor.float()
         arr = f32_tensor.numpy().ravel().copy()
         return arr, dtype_str
     elif dtype_str == "F16":
@@ -173,7 +173,7 @@ def read_pt_generic(filepath):
         return result
 
     if isinstance(state, dict):
-            if "module" in state:
+        if "module" in state:
             return read_pt_model_states(filepath)
         if "optimizer_state_dict" in state or "exp_avg" in str(state.keys()):
             return read_pt_optim_states(filepath)

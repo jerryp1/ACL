@@ -32,9 +32,6 @@ for _so_dir in [
     if os.path.isdir(_so_dir) and _so_dir not in sys.path:
         sys.path.insert(0, _so_dir)
 
-# ---------------------------------------------------------------------------
-# Stub loader – allows loading checkpoints saved with optional deps
-# ---------------------------------------------------------------------------
 _INSTALLED_STUBS: set = set()
 
 def _install_module_stubs(prefix: str) -> None:

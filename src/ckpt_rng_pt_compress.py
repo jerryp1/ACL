@@ -1,21 +1,4 @@
-"""
-ckpt_rng_pt_compress.py
------------------------
-Checkpoint compressor specialized for RNG / optimizer-state .pt files
-(e.g. model_optim_rng.pt, distrib_optim.pt).
-
-Differences from ckpt_pt_compress_pair.py:
-  - mp_rank matching uses the same _get_mp_rank() helper
-  - No `--base_ckpt / --finetuned_ckpt` pair mode; only `--ckpt_dir`
-    (scans the directory and automatically pairs adjacent checkpoints)
-
-Usage:
-    python ckpt_rng_pt_compress.py \
-        --ckpt_dir /data/checkpoints/Qwen3_235B \
-        --pt_names '*optim_rng.pt' \
-        --verbose  true \
-        --device   cpu
-"""
+"""RNG/optimizer checkpoint compressor (auto-pairs adjacent checkpoints)."""
 import argparse
 import json
 import os
@@ -71,11 +54,7 @@ def _str_bool(value: str) -> bool:
 
 
 def determine_compress_strategy(tensor_path: List[str]) -> str:
-    """Choose FM-Single or FM-Delta based on the tensor's parameter name.
-
-    Optimizer exp_avg tensors have high entropy and compress poorly with
-    delta; everything else benefits from delta compression.
-    """
+    """FM-Single for exp_avg tensors, FM-Delta otherwise."""
     name = str(tensor_path[-1]) if tensor_path else ""
     return "FM-Single" if ("exp_avg" in name and "exp_avg_sq" not in name) else "FM-Delta"
 
@@ -161,13 +140,7 @@ def compress_pt(
     chunk_size: int = CHUNK_SIZE_DEFAULT,
     verbose: bool = True,
 ) -> Dict[str, Any]:
-    """Compress all tensors in *finetuned_pt* relative to *base_pt*.
-
-    Writes both the compressed .pt file and a companion .pt.json metadata file.
-
-    Returns:
-        meta_dict: per-tensor compression metadata.
-    """
+    """Compress all tensors in finetuned_pt relative to base_pt."""
     meta_dict: Dict[str, Any] = {}
     tensors_info = utils.traverse_with_path_array(finetuned_pt)
     ok_count = skip_count = 0
@@ -294,12 +267,7 @@ def compress_pt(
 
 
 def _get_mp_rank(relpath: str) -> str:
-    """Extract the mp_rank segment from a relative path.
-
-    Examples:
-        iter_0000100/mp_rank_00_007_006  →  mp_rank_00_007_006
-        iter_0000002/mp_rank_00_007_006  →  mp_rank_00_007_006
-    """
+    """Extract mp_rank segment from a relative path."""
     if not relpath:
         return ""
     parts = re.split(r"[/\\]", relpath)
@@ -423,7 +391,7 @@ def compress_checkpoints(
     verbose: bool = True,
     device: str = "cpu",
 ) -> None:
-    """Scan *ckpt_dir* for checkpoints and compress each adjacent pair."""
+    """Scan ckpt_dir and compress each adjacent checkpoint pair."""
     checkpoints = utils.get_sorted_checkpoints(ckpt_dir)
 
     if len(checkpoints) < 2:
@@ -468,9 +436,9 @@ def compress_checkpoints(
 def main() -> None:
     parser = argparse.ArgumentParser(description="RNG/optimizer checkpoint compressor")
     parser.add_argument("--ckpt_dir",                  type=str,       required=True,
-                        help="目录路径，自动配对相邻 checkpoint")
+                        help="Checkpoint directory (auto-pairs adjacent checkpoints)")
     parser.add_argument("--pt_names",                  nargs="+",      required=True,
-                        help="要压缩的 .pt 文件名（支持 glob 通配，如 '*optim_rng.pt'）")
+                        help=".pt filenames to compress (supports glob, e.g. '*optim_rng.pt')")
     parser.add_argument("--compressed_pt_file_prefix", type=str,       default="compressed_")
     parser.add_argument("--tie_word_embeddings",       type=_str_bool, default=False)
     parser.add_argument("--chunk_size",                type=int,       default=CHUNK_SIZE_DEFAULT)

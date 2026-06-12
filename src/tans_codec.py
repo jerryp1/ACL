@@ -1,18 +1,5 @@
 #!/usr/bin/env python3
-"""
-Educational tANS lossless compressor, aligned with adamrt27/tANS_py.
-
-This script follows the classic tabled ANS construction used in Duda's slides
-and in the reference repository:
-1. Normalize symbol counts to a power-of-two table size L.
-2. Spread symbols into a decoding table.
-3. Build decoder entries: symbol, number of bits to read, and next state.
-4. Build the matching encoder transition table.
-5. Encode symbols into a bitstream and decode them from right to left.
-
-The CLI stores a small JSON container so compressed files can be decoded without
-keeping the Coder object in memory.
-"""
+"""tANS lossless compressor with JSON container format."""
 
 import argparse
 import base64

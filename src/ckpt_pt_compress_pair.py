@@ -3,7 +3,7 @@ import types
 from unittest.mock import MagicMock
 
 class _MegatronMockFinder:
-    """自动 mock 所有 megatron.* 子模块，解决 pickle 反序列化时找不到模块的问题"""
+    """Mock megatron.* modules for pickle deserialization."""
     def find_module(self, fullname, path=None):
         if fullname == 'megatron' or fullname.startswith('megatron.'):
             return self
@@ -259,19 +259,12 @@ def compress_pt(
 import re
 
 def _get_mp_rank(relpath: str) -> str:
-    """
-    从 relpath 提取 mp_rank 部分作为匹配 key
-    iter_0000100/mp_rank_00_007_006 → mp_rank_00_007_006
-    iter_0000002/mp_rank_00_007_006 → mp_rank_00_007_006
-    """
     if not relpath:
         return ""
     parts = re.split(r"[/\\]", relpath)
-    # 找到 mp_rank_XX_XXX_XXX 部分
     for part in parts:
         if part.startswith("mp_rank_"):
             return part
-    # 没有 mp_rank，去掉 iter_XXXXXXX 前缀后返回剩余部分
     return re.sub(r"^iter_\d+[/\\]?", "", relpath)
 
 
@@ -295,7 +288,6 @@ def _compress_pt_pair(
         print(f"[SKIP] {pt_name} not found in finetuned checkpoint")
         return 0, 0
 
-    # 用 mp_rank 作为 key 建立索引，方便 O(1) 查找
     base_by_mprank = {
         _get_mp_rank(f.get("relpath", "")): f
         for f in base_pt_files
@@ -311,7 +303,6 @@ def _compress_pt_pair(
     for ft_file in finetuned_pt_files:
         ft_mp_rank = _get_mp_rank(ft_file.get("relpath", ""))
 
-        # 用 mp_rank 找对应的 base
         base_file = base_by_mprank.get(ft_mp_rank)
         if base_file is None:
             print(f"[SKIP] no matching base for mp_rank={ft_mp_rank}")
@@ -345,7 +336,6 @@ def _compress_pt_pair(
                 print(f"  finetuned: {finetuned_pt_path}")
                 print(f"  output:    {compressed_pt_path}")
 
-            # ===== load =====
             t_load_start  = time.time()
             base_pt_data  = torch.load(base_pt_path,      map_location=device, weights_only=False)
             t_base_loaded = time.time()
@@ -355,7 +345,6 @@ def _compress_pt_pair(
             print(f"[TIME] load finetuned_pt: {t_ft_loaded - t_base_loaded:.2f}s")
             print(f"[TIME] load total:        {t_ft_loaded - t_load_start:.2f}s")
 
-            # ===== 压缩 =====
             t_compress_start = time.time()
             compress_pt(
                 base_pt=base_pt_data,
@@ -448,9 +437,9 @@ def compress_two_checkpoints(
     """Compress two specified checkpoints."""
     
     if not os.path.isdir(base_ckpt_path):
-        raise ValueError(f"base checkpoint 不存在或不是目录: {base_ckpt_path}")
+        raise ValueError(f"Base checkpoint not found or not a directory: {base_ckpt_path}")
     if not os.path.isdir(finetuned_ckpt_path):
-        raise ValueError(f"finetuned checkpoint 不存在或不是目录: {finetuned_ckpt_path}")
+        raise ValueError(f"Finetuned checkpoint not found or not a directory: {finetuned_ckpt_path}")
 
     if verbose:
         print(f"[INFO] base:      {base_ckpt_path}")
@@ -482,19 +471,19 @@ def compress_two_checkpoints(
               f"ratio={total_comp / total_orig:.2%}  time={elapsed:.1f}s")
         print("=" * 70)
     else:
-        print("[WARN] 没有处理任何文件，请检查路径和 pt_names")
+        print("[WARN] No files processed, check paths and pt_names")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Checkpoint diff compressor")
     
     parser.add_argument("--ckpt_dir",    type=str, default=None,
-                        help="扫描目录，自动配对相邻 checkpoint")
+                        help="Scan directory and auto-pair adjacent checkpoints")
     
     parser.add_argument("--base_ckpt",       type=str, default=None,
-                        help="base checkpoint 路径（旧的/参考的）")
+                        help="Base checkpoint path (older/reference)")
     parser.add_argument("--finetuned_ckpt",  type=str, default=None,
-                        help="finetuned checkpoint 路径（新的/要压缩的）")
+                        help="Finetuned checkpoint path (newer/to compress)")
 
     parser.add_argument("--pt_names",                  nargs="+",      required=True)
     parser.add_argument("--compressed_pt_file_prefix", type=str,       default="compressed_")
@@ -509,9 +498,9 @@ def main():
     use_pair = args.base_ckpt is not None and args.finetuned_ckpt is not None
 
     if use_dir and use_pair:
-        parser.error("--ckpt_dir 和 --base_ckpt/--finetuned_ckpt 不能同时使用")
+        parser.error("Cannot use --ckpt_dir together with --base_ckpt/--finetuned_ckpt")
     if not use_dir and not use_pair:
-        parser.error("必须指定 --ckpt_dir 或者同时指定 --base_ckpt 和 --finetuned_ckpt")
+        parser.error("Must specify either --ckpt_dir or both --base_ckpt and --finetuned_ckpt")
 
     common_kwargs = dict(
         pt_names=args.pt_names,
@@ -523,14 +512,12 @@ def main():
     )
 
     if use_pair:
-        # 模式二：直接指定
         compress_two_checkpoints(
             base_ckpt_path=args.base_ckpt,
             finetuned_ckpt_path=args.finetuned_ckpt,
             **common_kwargs,
         )
     else:
-        # 模式一：扫描目录
         if not os.path.isdir(args.ckpt_dir):
             raise ValueError(f"Invalid checkpoint directory: {args.ckpt_dir}")
         compress_checkpoints(

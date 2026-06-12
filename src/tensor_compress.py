@@ -30,7 +30,7 @@ except ImportError:
     _mfe = None
     _MFE_AVAILABLE = False
 
-CHUNK_ELEMS = 16 * 1024 * 1024  # 16M elements per chunk
+CHUNK_ELEMS = 16 * 1024 * 1024
 
 TANS_CODECS = {"TANS"}
 U8_CODECS = {"STATIC_RC_UINT8", "QS_RC_UINT8", "HUFFMAN_LUT", "DFLOAT11"}
@@ -57,8 +57,7 @@ def pcmap_inverse_f32(r: np.ndarray) -> np.ndarray:
 
 
 def rotl1(u32: np.ndarray) -> np.ndarray:
-    """Rotate left by 1 bit: bit31 (sign) → bit0.
-    After rotl1, byte3 becomes pure exponent bits."""
+    """Rotate left by 1 bit: bit31 → bit0."""
     u = u32.view(np.uint32)
     return ((u << np.uint32(1)) | (u >> np.uint32(31))).astype(np.uint32)
 
@@ -70,26 +69,19 @@ def rotr1(u32: np.ndarray) -> np.ndarray:
 
 
 def pcmap_delta(base_f32: np.ndarray, ft_f32: np.ndarray) -> np.ndarray:
-    """Compute signed pcmap delta: pcmap(ft) - pcmap(base) → view as uint32.
-    Uses uint32 subtraction (mod 2^32) directly, avoiding int64 intermediate."""
+    """Signed pcmap delta via uint32 wrapping subtraction."""
     pm_b = pcmap_f32(base_f32)
     pm_f = pcmap_f32(ft_f32)
-    # uint32 subtraction wraps mod 2^32, which when viewed as int32
-    # gives the correct signed difference — equivalent to the int64 path.
     return (pm_f - pm_b)
 
 def pcmap_delta_inverse(delta_u32: np.ndarray, base_f32: np.ndarray) -> np.ndarray:
-    """Reconstruct ft IEEE 754 bits from delta and base.
-    Returns uint32 array of IEEE 754 float32 bits.
-    Uses uint32 addition (mod 2^32) directly, avoiding int64 intermediate."""
+    """Reconstruct ft IEEE 754 bits from delta and base via uint32 wrapping addition."""
     pm_b = pcmap_f32(base_f32)
     pm_f_rec = pm_b + delta_u32
     return pcmap_inverse_f32(pm_f_rec)
 
 def per_byte_entropy(u32_arr: np.ndarray) -> np.ndarray:
-    """Shannon entropy for each of the 4 byte columns (byte0..byte3).
-    Returns shape=(4,) array with values in [0, 8] bits.
-"""
+    """Shannon entropy per byte column, shape=(4,), values in [0, 8]."""
     raw = u32_arr.view(np.uint8)
     n = len(u32_arr)
     ents = np.zeros(4, dtype=np.float64)

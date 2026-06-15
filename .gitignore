@@ -1,0 +1,25 @@
+# Build artifacts
+CodeTensors/cpp/build/
+CodeTensors/cpp/build.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Compiled extensions (keep pre-built .so in CodeTensors/python/install/)
+*.so
+
+# Experiment outputs (not part of the core library)
+experiments/
+csv/
+json/
+log/
+png/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
